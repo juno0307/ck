@@ -1,0 +1,619 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>家庭财务金融计算器</title>
+    <style>
+        :root {
+            --primary-color: #4361ee;
+            --primary-hover: #3a56d4;
+            --secondary-color: #6c757d;
+            --success-color: #2ec4b6;
+            --warning-color: #ff9f1c;
+            --bg-color: #f8f9fa;
+            --card-bg: #ffffff;
+            --text-color: #2b2d42;
+            --border-color: #e9ecef;
+            --shadow: 0 4px 6px rgba(0, 0, 0, 0.07);
+            --radius: 12px;
+        }
+
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            line-height: 1.6;
+            padding: 20px;
+        }
+
+        .container { max-width: 1000px; margin: 0 auto; }
+
+        header { text-align: center; margin-bottom: 30px; }
+        h1 { font-size: 2.2rem; color: var(--primary-color); margin-bottom: 10px; font-weight: 700; }
+        .subtitle { color: var(--secondary-color); font-size: 1rem; }
+
+        /* Tab Navigation */
+        .tabs {
+            display: flex; gap: 10px; margin-bottom: 25px; flex-wrap: wrap;
+            border-bottom: 2px solid var(--border-color); padding-bottom: 0;
+        }
+        .tab-btn {
+            padding: 12px 24px; background: none; border: none; cursor: pointer;
+            font-size: 1rem; font-weight: 600; color: var(--secondary-color);
+            border-bottom: 3px solid transparent; transition: all 0.3s ease;
+            border-radius: var(--radius) var(--radius) 0 0;
+        }
+        .tab-btn:hover { color: var(--primary-color); background-color: rgba(67, 97, 238, 0.05); }
+        .tab-btn.active {
+            color: var(--primary-color); border-bottom-color: var(--primary-color);
+            background-color: rgba(67, 97, 238, 0.08);
+        }
+
+        /* Content Cards */
+        .tab-content {
+            display: none; background: var(--card-bg); padding: 30px;
+            border-radius: var(--radius); box-shadow: var(--shadow);
+            animation: fadeIn 0.4s ease;
+        }
+        .tab-content.active { display: block; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+
+        h2 {
+            font-size: 1.5rem; margin-bottom: 15px; color: var(--text-color);
+            border-left: 4px solid var(--primary-color); padding-left: 12px;
+        }
+        .description {
+            color: var(--secondary-color); margin-bottom: 25px; font-size: 0.95rem;
+            background: rgba(67, 97, 238, 0.05); padding: 12px; border-radius: 8px;
+        }
+
+        /* Form Grid */
+        .form-grid {
+            display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+            gap: 20px; margin-bottom: 25px;
+        }
+        .form-group { display: flex; flex-direction: column; }
+        label { font-weight: 600; margin-bottom: 8px; font-size: 0.9rem; color: var(--text-color); }
+        input, select {
+            padding: 12px; border: 1px solid var(--border-color); border-radius: 8px;
+            font-size: 1rem; transition: border-color 0.3s; width: 100%;
+        }
+        input:focus, select:focus {
+            outline: none; border-color: var(--primary-color);
+            box-shadow: 0 0 0 3px rgba(67, 97, 238, 0.1);
+        }
+
+        /* Conditional Display Utility */
+        .hidden { display: none !important; }
+        .fade-in { animation: fadeIn 0.3s ease; }
+
+        /* Buttons */
+        .btn-group { display: flex; gap: 12px; flex-wrap: wrap; margin-top: 10px; }
+        .btn {
+            padding: 12px 24px; border: none; border-radius: 8px; font-size: 1rem;
+            font-weight: 600; cursor: pointer; transition: all 0.3s;
+            flex: 1; min-width: 140px; text-align: center;
+        }
+        .btn-primary { background-color: var(--primary-color); color: white; }
+        .btn-primary:hover { background-color: var(--primary-hover); transform: translateY(-2px); box-shadow: 0 4px 8px rgba(67, 97, 238, 0.2); }
+        .btn-secondary { background-color: var(--secondary-color); color: white; }
+        .btn-secondary:hover { background-color: #5a6268; }
+        .btn-success { background-color: var(--success-color); color: white; }
+        .btn-success:hover { background-color: #25a094; }
+        .btn-outline { background: none; border: 2px solid var(--secondary-color); color: var(--secondary-color); }
+        .btn-outline:hover { background-color: var(--secondary-color); color: white; }
+
+        /* Results */
+        .result-box {
+            margin-top: 25px; padding: 20px;
+            background: linear-gradient(135deg, #e0f7fa 0%, #e8f5e9 100%);
+            border-left: 5px solid var(--success-color); border-radius: 8px; display: none;
+        }
+        .result-item { font-size: 1.1rem; margin-bottom: 8px; font-weight: 600; }
+
+        /* Formula Section */
+        .formula-section {
+            margin-top: 35px; padding-top: 25px; border-top: 2px dashed var(--border-color);
+        }
+        .formula-title { font-weight: 700; color: var(--text-color); margin-bottom: 15px; display: block; font-size: 1.1rem; }
+        .formula-text {
+            font-family: 'Courier New', Courier, monospace; background: #f8f9fa;
+            padding: 15px; border-radius: 8px; font-size: 0.9rem; color: #495057;
+            white-space: pre-wrap; line-height: 1.8; border: 1px solid var(--border-color);
+        }
+
+        /* Risk Table */
+        .risk-table {
+            width: 100%; border-collapse: collapse; margin: 20px 0; font-size: 0.95rem;
+            overflow-x: auto; display: block;
+        }
+        .risk-table th, .risk-table td {
+            border: 1px solid var(--border-color); padding: 12px; text-align: center; white-space: nowrap;
+        }
+        .risk-table th { background-color: rgba(67, 97, 238, 0.08); color: var(--primary-color); font-weight: 700; }
+        .risk-table tr:nth-child(even) { background-color: rgba(0, 0, 0, 0.02); }
+        .risk-input-row {
+            display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px; margin-bottom: 15px; padding: 15px;
+            background: rgba(0, 0, 0, 0.02); border-radius: 8px; border: 1px solid var(--border-color);
+        }
+
+        @media (max-width: 768px) {
+            .tabs { flex-direction: column; border-bottom: none; }
+            .tab-btn { border-bottom: 1px solid var(--border-color); border-radius: 8px; text-align: left; }
+            .tab-btn.active { border-bottom-color: var(--primary-color); background-color: rgba(67, 97, 238, 0.1); }
+            .btn-group { flex-direction: column; }
+            .btn { width: 100%; }
+            .form-grid { grid-template-columns: 1fr; }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>家庭财务金融计算器</h1>
+        </header>
+
+        <div class="tabs">
+            <button class="tab-btn active" onclick="openTab('compound')">复利计算</button>
+            <button class="tab-btn" onclick="openTab('annuity')">年金计算</button>
+            <button class="tab-btn" onclick="openTab('rate')">利率转换</button>
+            <button class="tab-btn" onclick="openTab('risk')">风险衡量</button>
+        </div>
+
+        <!-- 复利计算 -->
+        <div id="compound" class="tab-content active">
+            <h2>复利现值/终值计算</h2>
+            <p class="description">请输入任意三个数值，留空一个待计算的值，然后点击"计算"按钮。</p>
+            
+            <div class="form-grid">
+                <div class="form-group">
+                    <label for="cp_pv">本金 PV</label>
+                    <input type="number" id="cp_pv" step="any" placeholder="例如: 10000">
+                </div>
+                <div class="form-group">
+                    <label for="cp_fv">终值 FV</label>
+                    <input type="number" id="cp_fv" step="any" placeholder="例如: 15000">
+                </div>
+                <div class="form-group">
+                    <label for="cp_n">期数 n</label>
+                    <input type="number" id="cp_n" step="any" placeholder="例如: 5">
+                </div>
+                <div class="form-group">
+                    <label for="cp_i">利率 i (%)</label>
+                    <input type="number" id="cp_i" step="any" placeholder="例如: 5">
+                </div>
+            </div>
+
+            <div class="btn-group">
+                <button class="btn btn-primary" onclick="calcCompound()">计算</button>
+                <button class="btn btn-secondary" onclick="resetForm('compound')">重置</button>
+            </div>
+            <div id="cp_result" class="result-box"></div>
+
+            <div class="formula-section">
+                <span class="formula-title">📐 涉及公式</span>
+                <div class="formula-text">FV = PV × (1 + i)^n
+PV = FV / (1 + i)^n
+i = (FV / PV)^(1/n) - 1
+n = ln(FV / PV) / ln(1 + i)</div>
+            </div>
+        </div>
+
+        <!-- 年金计算 (已修改) -->
+        <div id="annuity" class="tab-content">
+            <h2>年金现值/终值计算</h2>
+            <p class="description">选择年金类型，输入已知参数，点击对应按钮计算未知项。<br><strong>注意：</strong>选择“递延年金”时，需输入递延期数。</p>
+            
+            <div class="form-grid">
+                <div class="form-group">
+                    <label for="an_type">年金类型</label>
+                    <select id="an_type" onchange="toggleDeferralInput()">
+                        <option value="ordinary">普通年金 (期末支付)</option>
+                        <option value="due">预付年金 (期初支付)</option>
+                        <option value="deferred">递延年金</option>
+                    </select>
+                </div>
+                <!-- 递延期数输入框：默认隐藏，仅当选择递延年金时显示 -->
+                <div class="form-group hidden" id="deferral-group">
+                    <label for="an_m">递延期数 m</label>
+                    <input type="number" id="an_m" value="0" min="0" placeholder="例如: 2">
+                </div>
+            </div>
+
+            <div class="form-grid">
+                <div class="form-group">
+                    <label for="an_pv">现值 PV</label>
+                    <input type="number" id="an_pv" step="any">
+                </div>
+                <div class="form-group">
+                    <label for="an_pmt">年金 PMT</label>
+                    <input type="number" id="an_pmt" step="any">
+                </div>
+                <div class="form-group">
+                    <label for="an_fv">终值 FV</label>
+                    <input type="number" id="an_fv" step="any">
+                </div>
+                <div class="form-group">
+                    <label for="an_n">年金期数 n</label>
+                    <input type="number" id="an_n" step="any">
+                </div>
+                <div class="form-group">
+                    <label for="an_i">利率 i (%)</label>
+                    <input type="number" id="an_i" step="any">
+                </div>
+            </div>
+
+            <div class="btn-group">
+                <button class="btn btn-primary" onclick="calcAnnuity('pv')">计算 PV</button>
+                <button class="btn btn-primary" onclick="calcAnnuity('pmt')">计算 PMT</button>
+                <button class="btn btn-primary" onclick="calcAnnuity('fv')">计算 FV</button>
+                <button class="btn btn-primary" onclick="calcAnnuity('n')">计算 n</button>
+                <button class="btn btn-primary" onclick="calcAnnuity('i')">计算利率</button>
+                <button class="btn btn-secondary" onclick="resetForm('annuity')">重置</button>
+            </div>
+
+            <div id="an_result" class="result-box"></div>
+
+            <div class="formula-section">
+                <span class="formula-title">📐 涉及公式</span>
+                <div class="formula-text">普通年金现值: PV = PMT × [1 - (1+i)^-n] / i
+普通年金终值: FV = PMT × [(1+i)^n - 1] / i
+预付年金: 上述结果 × (1+i)
+递延年金现值: PV = (普通年金现值) / (1+i)^m
+             或 PV = PMT × [ (P/A, i, n+m) - (P/A, i, m) ]
+
+其中：
+PMT = 每期年金金额
+m   = 递延期数 (仅递延年金有效)
+i   = 每期利率
+n   = 年金发生期数
+
+注：利率i和期数n的精确计算通常需迭代法求解。</div>
+            </div>
+        </div>
+
+        <!-- 利率转换 -->
+        <div id="rate" class="tab-content">
+            <h2>名义利率与实际利率转换</h2>
+            <p class="description">基于费雪方程：1 + r = (1 + i) / (1 + π)，输入任意两个值计算第三个。</p>
+            
+            <div class="form-grid">
+                <div class="form-group">
+                    <label for="ir_i">名义利率 i (%)</label>
+                    <input type="number" id="ir_i" step="any" placeholder="例如: 8">
+                </div>
+                <div class="form-group">
+                    <label for="ir_pi">通货膨胀率 π (%)</label>
+                    <input type="number" id="ir_pi" step="any" placeholder="例如: 3">
+                </div>
+                <div class="form-group">
+                    <label for="ir_r">实际利率 r (%)</label>
+                    <input type="number" id="ir_r" step="any" placeholder="例如: 4.85">
+                </div>
+            </div>
+
+            <div class="btn-group">
+                <button class="btn btn-primary" onclick="calcRate('i')">计算名义利率</button>
+                <button class="btn btn-primary" onclick="calcRate('pi')">计算通胀率</button>
+                <button class="btn btn-primary" onclick="calcRate('r')">计算实际利率</button>
+                <button class="btn btn-secondary" onclick="resetForm('rate')">重置</button>
+            </div>
+            <div id="ir_result" class="result-box"></div>
+
+            <div class="formula-section">
+                <span class="formula-title">📐 涉及公式</span>
+                <div class="formula-text">精确费雪方程: 1 + r = (1 + i) / (1 + π)
+
+推导公式:
+实际利率: r = [(1 + i) / (1 + π)] - 1
+名义利率: i = (1 + r) × (1 + π) - 1
+通胀率:   π = (1 + i) / (1 + r) - 1</div>
+            </div>
+        </div>
+
+        <!-- 风险衡量 -->
+        <div id="risk" class="tab-content">
+            <h2>项目风险衡量</h2>
+            <p class="description">输入不同市场情景的发生概率及各项目收益率，自动计算预期收益、方差、标准差及标准离差率。</p>
+            
+            <div id="risk-inputs-container"></div>
+            
+            <div class="btn-group" style="margin-bottom: 20px;">
+                <button class="btn btn-success" onclick="addRiskRow()">+ 增加情景</button>
+                <button class="btn btn-outline" onclick="removeRiskRow()">- 移除情景</button>
+            </div>
+
+            <div class="btn-group">
+                <button class="btn btn-primary" onclick="calcRisk()">开始计算</button>
+                <button class="btn btn-secondary" onclick="resetRiskForm()">重置数据</button>
+            </div>
+            <div id="risk_result" class="result-box"></div>
+
+            <div class="formula-section">
+                <span class="formula-title">📐 涉及公式</span>
+                <div class="formula-text">1. 预期收益率 E(R): E(R) = Σ [ P(i) × R(i) ]
+2. 方差 σ²: σ² = Σ [ P(i) × (R(i) - E(R))² ]
+3. 标准差 σ: σ = √σ²
+4. 标准离差率 CV: CV = σ / |E(R)|</div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Tab 切换
+        function openTab(tabName) {
+            document.querySelectorAll('.tab-content').forEach(content => content.classList.remove('active'));
+            document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
+            document.getElementById(tabName).classList.add('active');
+            event.currentTarget.classList.add('active');
+        }
+
+        // 通用重置
+        function resetForm(tabId) {
+            const container = document.getElementById(tabId);
+            container.querySelectorAll('input').forEach(input => input.value = '');
+            container.querySelectorAll('select').forEach(select => select.selectedIndex = 0);
+            container.querySelector('.result-box').style.display = 'none';
+            container.querySelector('.result-box').innerHTML = '';
+            
+            // 如果是年金表单，重置后需要重新检查递延选项以隐藏输入框
+            if (tabId === 'annuity') {
+                toggleDeferralInput();
+            }
+        }
+
+        // --- 新增/修改：年金类型切换逻辑 ---
+        function toggleDeferralInput() {
+            const typeSelect = document.getElementById('an_type');
+            const deferralGroup = document.getElementById('deferral-group');
+            const deferralInput = document.getElementById('an_m');
+            
+            if (typeSelect.value === 'deferred') {
+                deferralGroup.classList.remove('hidden');
+                deferralGroup.classList.add('fade-in');
+                // 可选：如果是递延年金，强制要求输入m，或者给个默认值
+                if(deferralInput.value === '') deferralInput.value = 0;
+            } else {
+                deferralGroup.classList.add('hidden');
+                deferralGroup.classList.remove('fade-in');
+                // 隐藏时清空值，避免干扰计算逻辑（虽然逻辑里会判断类型，但清空更安全）
+                deferralInput.value = ''; 
+            }
+        }
+
+        // 复利计算
+        function calcCompound() {
+            const pv = parseFloat(document.getElementById('cp_pv').value);
+            const fv = parseFloat(document.getElementById('cp_fv').value);
+            const n = parseFloat(document.getElementById('cp_n').value);
+            const i = parseFloat(document.getElementById('cp_i').value) / 100;
+            const values = [pv, fv, n, i];
+            const knownCount = values.filter(v => !isNaN(v)).length;
+
+            if (knownCount !== 3) { alert('请准确输入任意三个数值以计算第四个数值。'); return; }
+
+            let result = '';
+            if (isNaN(pv)) {
+                const calculated = fv / Math.pow((1 + i), n);
+                result = `💰 计算结果 - 本金 (PV): ${calculated.toLocaleString('zh-CN', {minimumFractionDigits: 2, maximumFractionDigits: 4})}`;
+            } else if (isNaN(fv)) {
+                const calculated = pv * Math.pow((1 + i), n);
+                result = `💰 计算结果 - 终值 (FV): ${calculated.toLocaleString('zh-CN', {minimumFractionDigits: 2, maximumFractionDigits: 4})}`;
+            } else if (isNaN(n)) {
+                if (pv <= 0 || fv <= 0 || i <= -1) { alert('参数无效，无法计算期数'); return; }
+                const calculated = Math.log(fv / pv) / Math.log(1 + i);
+                result = `⏱️ 计算结果 - 期数 (n): ${calculated.toFixed(4)}`;
+            } else if (isNaN(i)) {
+                if (n === 0 || pv === 0) { alert('参数无效，无法计算利率'); return; }
+                const calculated = Math.pow(fv / pv, 1/n) - 1;
+                result = `📈 计算结果 - 利率 (i): ${(calculated * 100).toFixed(4)}%`;
+            }
+
+            const resBox = document.getElementById('cp_result');
+            resBox.innerHTML = `<div class="result-item">${result}</div>`;
+            resBox.style.display = 'block';
+        }
+
+        // --- 修改：年金计算逻辑 ---
+        function calcAnnuity(target) {
+            const type = document.getElementById('an_type').value;
+            // 获取递延期数，如果不是递延年金，m 视为 0
+            let m = 0;
+            if (type === 'deferred') {
+                m = parseFloat(document.getElementById('an_m').value);
+                if (isNaN(m) || m < 0) {
+                    alert('递延年金必须输入有效的递延期数 m (>=0)');
+                    return;
+                }
+            }
+
+            let pv = parseFloat(document.getElementById('an_pv').value);
+            let pmt = parseFloat(document.getElementById('an_pmt').value);
+            let fv = parseFloat(document.getElementById('an_fv').value);
+            let n = parseFloat(document.getElementById('an_n').value);
+            let i = parseFloat(document.getElementById('an_i').value) / 100;
+
+            // 基础系数：普通年金为1，预付年金为(1+i)
+            // 注意：递延年金通常指现值的递延，终值计算通常与普通年金相同（取决于具体定义，这里假设终值不发生递延，仅现值递延）
+            // 如果是指递延期间不支付，之后支付n期，则FV计算与普通年金一致，PV需要折现m期。
+            const dueFactor = (type === 'due') ? (1 + i) : 1;
+            
+            let result = '';
+
+            try {
+                if (target === 'pv') {
+                    if (isNaN(pmt) || isNaN(i) || isNaN(n)) throw '缺少必要参数 (PMT, i, n)';
+                    // 普通/预付年金现值公式
+                    let basePV = pmt * ((1 - Math.pow(1+i, -n)) / i) * dueFactor;
+                    // 如果是递延年金，再折现 m 期
+                    if (type === 'deferred' && m > 0) {
+                        basePV /= Math.pow(1+i, m);
+                    }
+                    result = `💰 现值 (PV): ${basePV.toLocaleString('zh-CN', {minimumFractionDigits: 2, maximumFractionDigits: 4})}`;
+                    
+                } else if (target === 'fv') {
+                    if (isNaN(pmt) || isNaN(i) || isNaN(n)) throw '缺少必要参数 (PMT, i, n)';
+                    // 终值通常不受递延期影响（因为是计算最后一笔款项发生时的价值），但受预付/普通影响
+                    // 如果用户定义的递延年金终值是指整个项目结束点，逻辑可能不同。此处按标准：FV只与支付期n有关。
+                    let val = pmt * ((Math.pow(1+i, n) - 1) / i) * dueFactor;
+                    result = `💰 终值 (FV): ${val.toLocaleString('zh-CN', {minimumFractionDigits: 2, maximumFractionDigits: 4})}`;
+                    
+                } else if (target === 'pmt') {
+                    if (isNaN(i) || isNaN(n)) throw '缺少必要参数 (i, n)';
+                    let val;
+                    if (!isNaN(pv)) {
+                        // 已知 PV 求 PMT
+                        // PV = PMT * (P/A, i, n) * (1+i if due) * (P/F, i, m if deferred)
+                        let factor = ((1 - Math.pow(1+i, -n)) / i) * dueFactor;
+                        if (type === 'deferred' && m > 0) {
+                            factor /= Math.pow(1+i, m);
+                        }
+                        val = pv / factor;
+                    } else if (!isNaN(fv)) {
+                        // 已知 FV 求 PMT
+                        let factor = ((Math.pow(1+i, n) - 1) / i) * dueFactor;
+                        val = fv / factor;
+                    } else {
+                        throw '需输入PV或FV其中之一';
+                    }
+                    result = `💵 年金 (PMT): ${val.toLocaleString('zh-CN', {minimumFractionDigits: 2, maximumFractionDigits: 4})}`;
+                    
+                } else if (target === 'n' || target === 'i') {
+                    result = '⚠️ 期数n和利率i的精确计算需迭代法，建议使用专业金融计算器或Excel。当前版本暂不支持此反向求解。';
+                }
+
+                const resBox = document.getElementById('an_result');
+                resBox.innerHTML = `<div class="result-item">${result}</div>`;
+                resBox.style.display = 'block';
+            } catch (e) {
+                alert('计算失败: ' + e);
+            }
+        }
+
+        // 利率转换
+        function calcRate(target) {
+            let i = parseFloat(document.getElementById('ir_i').value) / 100;
+            let pi = parseFloat(document.getElementById('ir_pi').value) / 100;
+            let r = parseFloat(document.getElementById('ir_r').value) / 100;
+            let result = '';
+
+            if (target === 'r') {
+                if (isNaN(i) || isNaN(pi)) { alert('请输入名义利率和通胀率'); return; }
+                r = (1 + i) / (1 + pi) - 1;
+                result = `📉 实际利率 (r): ${(r * 100).toFixed(4)}%`;
+            } else if (target === 'i') {
+                if (isNaN(r) || isNaN(pi)) { alert('请输入实际利率和通胀率'); return; }
+                i = (1 + r) * (1 + pi) - 1;
+                result = `📈 名义利率 (i): ${(i * 100).toFixed(4)}%`;
+            } else if (target === 'pi') {
+                if (isNaN(i) || isNaN(r)) { alert('请输入名义利率和实际利率'); return; }
+                pi = (1 + i) / (1 + r) - 1;
+                result = `🛒 通货膨胀率 (π): ${(pi * 100).toFixed(4)}%`;
+            }
+
+            const resBox = document.getElementById('ir_result');
+            resBox.innerHTML = `<div class="result-item">${result}</div>`;
+            resBox.style.display = 'block';
+        }
+
+        // 风险衡量功能
+        let riskRowCount = 0;
+        function addRiskRow() {
+            riskRowCount++;
+            const container = document.getElementById('risk-inputs-container');
+            const row = document.createElement('div');
+            row.className = 'risk-input-row fade-in';
+            row.id = `risk-row-${riskRowCount}`;
+            row.innerHTML = `
+                <div class="form-group"><label>情景 ${riskRowCount} - 发生概率 (%)</label><input type="number" class="risk-prob" step="0.01" placeholder="例: 30" min="0" max="100"></div>
+                <div class="form-group"><label>项目A收益率 (%)</label><input type="number" class="risk-a" step="0.01" placeholder="例: 15"></div>
+                <div class="form-group"><label>项目B收益率 (%)</label><input type="number" class="risk-b" step="0.01" placeholder="例: 10"></div>
+                <div class="form-group"><label>项目C收益率 (%)</label><input type="number" class="risk-c" step="0.01" placeholder="例: 8"></div>
+            `;
+            container.appendChild(row);
+        }
+        function removeRiskRow() {
+            if (riskRowCount > 1) {
+                document.getElementById(`risk-row-${riskRowCount}`).remove();
+                riskRowCount--;
+            } else { alert('至少需要保留一个情景'); }
+        }
+        function resetRiskForm() {
+            const container = document.getElementById('risk-inputs-container');
+            container.innerHTML = '';
+            riskRowCount = 0;
+            addRiskRow(); addRiskRow(); addRiskRow();
+            document.getElementById('risk_result').style.display = 'none';
+            document.getElementById('risk_result').innerHTML = '';
+        }
+        function calcRisk() {
+            const probInputs = document.querySelectorAll('.risk-prob');
+            const aInputs = document.querySelectorAll('.risk-a');
+            const bInputs = document.querySelectorAll('.risk-b');
+            const cInputs = document.querySelectorAll('.risk-c');
+            const probs = [], returnsA = [], returnsB = [], returnsC = [];
+
+            for (let i = 0; i < probInputs.length; i++) {
+                const p = parseFloat(probInputs[i].value);
+                if (isNaN(p)) { alert(`第${i+1}行的发生概率不能为空`); return; }
+                probs.push(p / 100);
+                returnsA.push(isNaN(parseFloat(aInputs[i].value)) ? 0 : parseFloat(aInputs[i].value) / 100);
+                returnsB.push(isNaN(parseFloat(bInputs[i].value)) ? 0 : parseFloat(bInputs[i].value) / 100);
+                returnsC.push(isNaN(parseFloat(cInputs[i].value)) ? 0 : parseFloat(cInputs[i].value) / 100);
+            }
+
+            const sumProb = probs.reduce((sum, p) => sum + p, 0);
+            if (Math.abs(sumProb - 1.0) > 0.001) {
+                if (!confirm(`警告：概率之和为 ${(sumProb*100).toFixed(2)}%，不等于100%。\n是否继续计算？`)) return;
+            }
+
+            function calculateMetrics(returns, probabilities) {
+                let er = returns.reduce((sum, r, i) => sum + probabilities[i] * r, 0);
+                let variance = returns.reduce((sum, r, i) => sum + probabilities[i] * Math.pow(r - er, 2), 0);
+                let stdDev = Math.sqrt(variance);
+                let cv = er !== 0 ? stdDev / Math.abs(er) : 0;
+                let deviations = returns.map(r => r - er);
+                return { er, variance, stdDev, cv, deviations };
+            }
+
+            const statsA = calculateMetrics(returnsA, probs);
+            const statsB = calculateMetrics(returnsB, probs);
+            const statsC = calculateMetrics(returnsC, probs);
+
+            const fmtPercent = (num) => `${(num * 100).toFixed(4)}%`;
+            const fmtRaw = (num) => num.toFixed(6);
+
+            let html = `<h3 style="margin-bottom: 15px; color: var(--primary-color);">📊 计算结果汇总</h3>
+                <table class="risk-table"><thead><tr><th>指标</th><th>项目 A</th><th>项目 B</th><th>项目 C</th></tr></thead><tbody>
+                <tr><td><strong>预期收益率</strong></td><td>${fmtPercent(statsA.er)}</td><td>${fmtPercent(statsB.er)}</td><td>${fmtPercent(statsC.er)}</td></tr>
+                <tr><td><strong>方差</strong></td><td>${fmtRaw(statsA.variance)}</td><td>${fmtRaw(statsB.variance)}</td><td>${fmtRaw(statsC.variance)}</td></tr>
+                <tr><td><strong>标准差</strong></td><td>${fmtPercent(statsA.stdDev)}</td><td>${fmtPercent(statsB.stdDev)}</td><td>${fmtPercent(statsC.stdDev)}</td></tr>
+                <tr><td><strong>标准离差率</strong></td><td>${statsA.cv.toFixed(4)}</td><td>${statsB.cv.toFixed(4)}</td><td>${statsC.cv.toFixed(4)}</td></tr>
+                </tbody></table>
+                <h4 style="margin: 25px 0 15px 0; color: var(--text-color);">📉 各情景下的偏离程度</h4>
+                <table class="risk-table"><thead><tr><th>情景</th><th>概率</th><th>项目A偏离</th><th>项目B偏离</th><th>项目C偏离</th></tr></thead><tbody>`;
+            
+            for (let i = 0; i < probs.length; i++) {
+                html += `<tr><td>情景 ${i+1}</td><td>${(probs[i] * 100).toFixed(1)}%</td>
+                    <td>${fmtPercent(statsA.deviations[i])}</td><td>${fmtPercent(statsB.deviations[i])}</td><td>${fmtPercent(statsC.deviations[i])}</td></tr>`;
+            }
+            html += `</tbody></table>`;
+
+            const resBox = document.getElementById('risk_result');
+            resBox.innerHTML = html;
+            resBox.style.display = 'block';
+        }
+
+        // 初始化
+        window.addEventListener('DOMContentLoaded', () => {
+            addRiskRow(); addRiskRow(); addRiskRow();
+            // 初始化年金表单状态
+            toggleDeferralInput();
+        });
+    </script>
+</body>
+</html>
