@@ -1,0 +1,686 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>运气也是实力的一种</title>
+    <style>
+        :root {
+            --dice-size: 100px;
+            --primary-color: #2196F3;
+            --success-color: #4CAF50;
+            --danger-color: #FF5722;
+            --warning-color: #FF9800;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #f0f2f5;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            min-height: 100vh;
+            margin: 0;
+            padding: 20px;
+        }
+
+        h1 { color: #333; margin-bottom: 10px; text-align: center; }
+        p.instruction { 
+            color: #555; 
+            margin-bottom: 25px; 
+            text-align: center; 
+            max-width: 700px; 
+            line-height: 1.6;
+            background: #fff;
+            padding: 15px;
+            border-radius: 10px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+        }
+        .highlight { color: var(--danger-color); font-weight: bold; }
+
+        /* ================= 3D 骰子区域 ================= */
+        .dice-section {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            margin-bottom: 30px;
+            padding: 20px;
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.08);
+        }
+
+        .scene {
+            width: var(--dice-size);
+            height: var(--dice-size);
+            perspective: 600px;
+            margin-bottom: 20px;
+        }
+
+        .cube {
+            width: 100%; height: 100%;
+            position: relative;
+            transform-style: preserve-3d;
+            transform: translateZ(-50px);
+            transition: transform 1.5s cubic-bezier(0.2, 0.8, 0.2, 1);
+        }
+        .cube.rolling { animation: spin 0.5s linear infinite; }
+        @keyframes spin {
+            0% { transform: translateZ(-50px) rotateX(0deg) rotateY(0deg); }
+            100% { transform: translateZ(-50px) rotateX(360deg) rotateY(360deg); }
+        }
+
+        .face {
+            position: absolute;
+            width: 100px; height: 100px;
+            background: white;
+            border: 2px solid #eee;
+            border-radius: 16px;
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            grid-template-rows: repeat(3, 1fr);
+            padding: 12px;
+            box-sizing: border-box;
+            box-shadow: inset 0 0 10px rgba(0,0,0,0.1);
+            backface-visibility: hidden;
+        }
+        .face-1 { transform: rotateY(0deg) translateZ(50px); }
+        .face-2 { transform: rotateY(90deg) translateZ(50px); }
+        .face-3 { transform: rotateY(180deg) translateZ(50px); }
+        .face-4 { transform: rotateY(-90deg) translateZ(50px); }
+        .face-5 { transform: rotateX(90deg) translateZ(50px); }
+        .face-6 { transform: rotateX(-90deg) translateZ(50px); }
+
+        .dot {
+            background-color: #333; border-radius: 50%;
+            width: 18px; height: 18px;
+            align-self: center; justify-self: center;
+            box-shadow: inset 0 2px 4px rgba(0,0,0,0.4);
+        }
+        .dot.red { background-color: #d32f2f; }
+
+        /* ================= 按钮与输入框 ================= */
+        button {
+            padding: 10px 25px;
+            font-size: 16px;
+            border: none;
+            border-radius: 50px;
+            cursor: pointer;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.15);
+            transition: all 0.2s;
+            font-weight: bold;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            color: white;
+            margin: 5px;
+        }
+        button:hover:not(:disabled) { transform: translateY(-2px); filter: brightness(1.1); }
+        button:active:not(:disabled) { transform: translateY(0); }
+        button:disabled { background-color: #e0e0e0 !important; color: #999; cursor: not-allowed; transform: none; box-shadow: none; }
+
+        .btn-dice { background-color: var(--danger-color); }
+        .btn-draw { 
+            background-color: var(--primary-color); 
+            width: 90%; 
+            max-width: 400px;
+            justify-content: center; 
+            margin-top: 30px;
+            padding: 15px 30px;
+            font-size: 20px;
+        }
+        
+        /* 隐藏的文件输入框 */
+        input[type="file"] { display: none; }
+        
+        .btn-upload {
+            background-color: #9C27B0;
+            font-size: 13px;
+            padding: 6px 15px;
+            margin-top: 8px;
+            width: 90%;
+            justify-content: center;
+        }
+        .btn-upload.ready { background-color: var(--success-color); }
+
+        /* ================= 分类框区域 ================= */
+        .container {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 20px;
+            max-width: 700px;
+            width: 100%;
+        }
+
+        .box-wrapper {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        .box {
+            background-color: #ffffff;
+            border: 3px solid #e0e0e0;
+            border-radius: 15px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.05);
+            user-select: none;
+            padding: 15px;
+            width: 100%;
+            aspect-ratio: 4/3;
+            box-sizing: border-box;
+            position: relative;
+        }
+
+        .box-icon { font-size: 40px; margin-bottom: 8px; }
+        .box-title { font-size: 18px; font-weight: bold; color: #555; text-align: center; }
+        .status-text { 
+            font-size: 12px; 
+            margin-top: 5px; 
+            text-align: center; 
+            min-height: 16px;
+            font-weight: bold;
+        }
+        .status-empty { color: #999; }
+        .status-loaded { color: var(--success-color); }
+
+        .box:hover { transform: translateY(-3px); box-shadow: 0 8px 15px rgba(0,0,0,0.1); border-color: #bbb; }
+        
+        .box.selected { 
+            background-color: #e8f5e9; 
+            border-color: var(--success-color); 
+            transform: scale(1.03); 
+            box-shadow: 0 0 0 4px rgba(76, 175, 80, 0.2); 
+        }
+        .box.selected .box-title { color: #2E7D32; }
+
+        /* ================= 图片弹窗 ================= */
+        .modal-overlay {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0, 0, 0, 0.9);
+            display: none;
+            align-items: center; justify-content: center;
+            z-index: 1000;
+            backdrop-filter: blur(5px);
+            opacity: 0; transition: opacity 0.3s;
+        }
+        .modal-overlay.show { opacity: 1; }
+
+        .modal-content {
+            background: white;
+            padding: 20px;
+            border-radius: 20px;
+            text-align: center;
+            max-width: 90%;
+            max-height: 90%;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.6);
+            transform: scale(0.8);
+            transition: transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            position: relative;
+        }
+        .modal-overlay.show .modal-content { transform: scale(1); }
+
+        .modal-header {
+            width: 100%;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+            border-bottom: 1px solid #eee;
+            padding-bottom: 10px;
+        }
+
+        .modal-category-tag {
+            background: #e8f5e9; 
+            color: #2E7D32;
+            padding: 6px 16px; 
+            border-radius: 20px;
+            font-size: 14px; 
+            font-weight: bold;
+        }
+
+        .result-image {
+            max-width: 100%;
+            max-height: 70vh;
+            border-radius: 10px;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+            object-fit: contain;
+        }
+
+        .close-btn {
+            background-color: var(--danger-color);
+            margin-top: 20px;
+            padding: 12px 50px;
+            font-size: 18px;
+        }
+        .close-btn:hover { background-color: #d32f2f; }
+
+        .toast {
+            position: fixed; top: 20px;
+            background: #333; color: white;
+            padding: 12px 24px; border-radius: 50px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+            transform: translateY(-100px); transition: transform 0.3s;
+            z-index: 2000; font-weight: bold;
+            display: flex; align-items: center; gap: 10px;
+        }
+        .toast.show { transform: translateY(0); }
+        .toast.error { background: #d32f2f; }
+        .toast.success { background: #388E3C; }
+    </style>
+</head>
+<body>
+
+    <h1>运气也是实力的一种</h1>
+
+    <!-- 1. 3D 骰子区域 -->
+    <div class="dice-section">
+        <div class="scene">
+            <div class="cube" id="cube">
+                <div class="face face-1"><div class="dot red" style="grid-area: 2/2;"></div></div>
+                <div class="face face-2"><div class="dot" style="grid-area: 1/1;"></div><div class="dot" style="grid-area: 3/3;"></div></div>
+                <div class="face face-3"><div class="dot" style="grid-area: 1/1;"></div><div class="dot red" style="grid-area: 2/2;"></div><div class="dot" style="grid-area: 3/3;"></div></div>
+                <div class="face face-4"><div class="dot" style="grid-area: 1/1;"></div><div class="dot" style="grid-area: 1/3;"></div><div class="dot" style="grid-area: 3/1;"></div><div class="dot" style="grid-area: 3/3;"></div></div>
+                <div class="face face-5"><div class="dot" style="grid-area: 1/1;"></div><div class="dot" style="grid-area: 1/3;"></div><div class="dot red" style="grid-area: 2/2;"></div><div class="dot" style="grid-area: 3/1;"></div><div class="dot" style="grid-area: 3/3;"></div></div>
+                <div class="face face-6"><div class="dot" style="grid-area: 1/1;"></div><div class="dot" style="grid-area: 1/3;"></div><div class="dot" style="grid-area: 2/1;"></div><div class="dot" style="grid-area: 2/3;"></div><div class="dot" style="grid-area: 3/1;"></div><div class="dot" style="grid-area: 3/3;"></div></div>
+            </div>
+        </div>
+        <button class="btn-dice" id="diceBtn" onclick="rollDice()">
+            <span>🎲</span> 掷骰子
+        </button>
+    </div>
+
+    <!-- 2. 分类选择与上传区域 -->
+    <div class="container">
+        <!-- 循环生成4个类别 -->
+        <script>
+            const categories = [
+                { id: 0, name: "市场风云", icon: "📚" },
+                { id: 1, name: "意外开支", icon: "🏃" },
+                { id: 2, name: "大买卖", icon: "🏠" },
+                { id: 3, name: "小生意", icon: "🎁" }
+            ];
+            
+            categories.forEach(cat => {
+                document.write(`
+                <div class="box-wrapper">
+                    <div class="box" onclick="selectCategory(${cat.id})" id="box${cat.id}">
+                        <div class="box-icon">${cat.icon}</div>
+                        <div class="box-title">${cat.name}</div>
+                        
+                    </div>
+                   
+                </div>
+                `);
+            });
+        </script>
+    </div>
+
+    <button class="btn-draw" id="drawBtn" onclick="startDraw()" disabled>
+        <span>⚠️</span> 请先选择类别并加载图片
+    </button>
+
+    <div id="toast" class="toast"></div>
+
+    <!-- 图片结果弹窗 -->
+    <div class="modal-overlay" id="modalOverlay" onclick="if(event.target===this) closeModal()">
+        <div class="modal-content">
+            <div class="modal-header">
+                <div id="modalCategoryTag" class="modal-category-tag">类别名称</div>
+                <div style="font-size:12px; color:#999;" id="modalCountInfo"></div>
+            </div>
+            <img src="" alt="抽签结果" class="result-image" id="resultImage">
+            <button class="close-btn" onclick="closeModal()">确定</button>
+        </div>
+    </div>
+
+    <script>
+       // ================= 配置区域：在此处填入您的图片网络链接 =================
+// 请确保链接是有效的 http/https 开头
+const categoryImages = {
+    0: [ // 市场风云 (填入41个链接)
+"https://i.imgs.ovh/2026/03/07/Oj0qPb.png",
+"https://i.imgs.ovh/2026/03/07/OaiWhc.png",
+"https://i.imgs.ovh/2026/03/07/OaiQD9.png",
+"https://i.imgs.ovh/2026/03/07/Oai2ap.png",
+"https://i.imgs.ovh/2026/03/07/OaiH56.png", 
+"https://i.imgs.ovh/2026/03/07/OaiJdO.png",
+"https://i.imgs.ovh/2026/03/07/Oaio0d.png",
+"https://i.imgs.ovh/2026/03/07/Oai4zg.png",
+"https://i.imgs.ovh/2026/03/07/OaiEH0.png",
+"https://i.imgs.ovh/2026/03/07/OaidXY.png",
+"https://i.imgs.ovh/2026/03/07/OaitSb.png",
+"https://i.imgs.ovh/2026/03/07/OaiKD1.png",
+"https://i.imgs.ovh/2026/03/07/Oaiphn.png",
+"https://i.imgs.ovh/2026/03/07/OaihjL.png",
+"https://i.imgs.ovh/2026/03/07/OaiG5x.png",
+"https://i.imgs.ovh/2026/03/07/OaimdM.png",
+"https://i.imgs.ovh/2026/03/07/Oaix7r.png",
+"https://i.imgs.ovh/2026/03/07/OaiBzh.png",
+"https://i.imgs.ovh/2026/03/07/OaiXHe.png",
+"https://i.imgs.ovh/2026/03/07/Oaiwwa.png",
+"https://i.imgs.ovh/2026/03/07/Oai3St.png",
+"https://i.imgs.ovh/2026/03/07/OaiNMq.png",
+"https://i.imgs.ovh/2026/03/07/OaiiGC.png",
+"https://i.imgs.ovh/2026/03/07/Oj07j4.png",
+"https://i.imgs.ovh/2026/03/07/Oj0C6A.png",
+"https://i.imgs.ovh/2026/03/07/Oj0ydN.png",
+"https://i.imgs.ovh/2026/03/07/Oj0Z7H.png",
+"https://i.imgs.ovh/2026/03/07/Oj0aAU.png",
+"https://i.imgs.ovh/2026/03/07/Oj0jHX.png",
+"https://i.imgs.ovh/2026/03/07/Oj0cwQ.png",
+"https://i.imgs.ovh/2026/03/07/Oj0rLF.png",
+"https://i.imgs.ovh/2026/03/07/Oj0vMm.png",
+"https://i.imgs.ovh/2026/03/07/Oj0FG9.png",
+"https://i.imgs.ovh/2026/03/07/Oj0Lcc.png",
+"https://i.imgs.ovh/2026/03/07/Oj0T6p.png",
+"https://i.imgs.ovh/2026/03/07/Oj0Ul6.png",
+"https://i.imgs.ovh/2026/03/07/Oj0bCO.png",
+"https://i.imgs.ovh/2026/03/07/Oj0zAd.png",
+"https://i.imgs.ovh/2026/03/07/Oj0AJg.png",
+"https://i.imgs.ovh/2026/03/07/Oj0R10.png",
+"https://i.imgs.ovh/2026/03/07/Oj0kLY.png",
+    ],
+    1: [ // 意外开支
+"https://i.imgs.ovh/2026/03/07/OaGST6.png",
+"https://i.imgs.ovh/2026/03/07/OaGv1p.png",
+"https://i.imgs.ovh/2026/03/07/OaGLQO.png",
+"https://i.imgs.ovh/2026/03/07/OaGTmd.png",
+"https://i.imgs.ovh/2026/03/07/OaGVfg.png",
+"https://i.imgs.ovh/2026/03/07/OaGbe0.png",
+"https://i.imgs.ovh/2026/03/07/OaGztY.png",
+"https://i.imgs.ovh/2026/03/07/OaGRyb.png",
+"https://i.imgs.ovh/2026/03/07/OaGgR1.png",
+"https://i.imgs.ovh/2026/03/07/OaGkYn.png",
+"https://i.imgs.ovh/2026/03/07/OaGq3L.png",
+"https://i.imgs.ovh/2026/03/07/OaG6Tx.png",
+"https://i.imgs.ovh/2026/03/07/OaG8QM.png",
+"https://i.imgs.ovh/2026/03/07/OaGeur.png",
+"https://i.imgs.ovh/2026/03/07/OaG9fh.png",
+"https://i.imgs.ovh/2026/03/07/OaGDee.png",
+"https://i.imgs.ovh/2026/03/07/OaGMKa.png",
+"https://i.imgs.ovh/2026/03/07/OaGQyt.png",
+"https://i.imgs.ovh/2026/03/07/OaGWgq.png",
+"https://i.imgs.ovh/2026/03/07/OaGnoC.png",
+"https://i.imgs.ovh/2026/03/07/OaG234.png",
+"https://i.imgs.ovh/2026/03/07/OaGJUA.png",
+"https://i.imgs.ovh/2026/03/07/OaGYQN.png",
+"https://i.imgs.ovh/2026/03/07/OaGouH.png",
+"https://i.imgs.ovh/2026/03/07/OaGErU.png",
+"https://i.imgs.ovh/2026/03/07/OaGdeX.png",
+"https://i.imgs.ovh/2026/03/07/OaGlKQ.png",
+"https://i.imgs.ovh/2026/03/07/OaGKOF.png",
+"https://i.imgs.ovh/2026/03/07/OaGpgm.png",
+"https://i.imgs.ovh/2026/03/07/OaGIo9.png",
+"https://i.imgs.ovh/2026/03/07/OaGhNc.png",
+"https://i.imgs.ovh/2026/03/07/OaGmUp.png",
+"https://i.imgs.ovh/2026/03/07/OaGuW6.png",
+"https://i.imgs.ovh/2026/03/07/OaGxxO.png",
+"https://i.imgs.ovh/2026/03/07/OaGXrd.png",
+"https://i.imgs.ovh/2026/03/07/OaGwsg.png",
+"https://i.imgs.ovh/2026/03/07/OaG1p0.png",
+"https://i.imgs.ovh/2026/03/07/OaGNOY.png",
+"https://i.imgs.ovh/2026/03/07/OaGikb.png",
+"https://i.imgs.ovh/2026/03/07/Oam0o1.png",
+"https://i.imgs.ovh/2026/03/07/Oam7Nn.png",
+"https://i.imgs.ovh/2026/03/07/OamyVL.png",
+        // ... 
+    ],
+    2: [ // 大买卖
+"https://i.imgs.ovh/2026/03/07/Ojj6V6.png",
+"https://i.imgs.ovh/2026/03/07/Ojj8nO.png",
+"https://i.imgs.ovh/2026/03/07/Ojjexd.png",
+"https://i.imgs.ovh/2026/03/07/Ojj9vg.png",
+"https://i.imgs.ovh/2026/03/07/OjjD90.png",
+"https://i.imgs.ovh/2026/03/07/OjjMpY.png",
+"https://i.imgs.ovh/2026/03/07/OjjQZb.png",
+"https://i.imgs.ovh/2026/03/07/OjjWk1.png",
+"https://i.imgs.ovh/2026/03/07/Ojjn4n.png",
+"https://i.imgs.ovh/2026/03/07/Ojj2iL.png",
+"https://i.imgs.ovh/2026/03/07/OjjJVx.png",
+"https://i.imgs.ovh/2026/03/07/OjjYnM.png",
+"https://i.imgs.ovh/2026/03/07/OjjoBr.png",
+"https://i.imgs.ovh/2026/03/07/OjjEvh.png",
+"https://i.imgs.ovh/2026/03/07/Ojjd9e.png",
+"https://i.imgs.ovh/2026/03/07/OjjlIa.png",
+"https://i.imgs.ovh/2026/03/07/OjjKZt.png",
+"https://i.imgs.ovh/2026/03/07/Ojjpqq.png",
+"https://i.imgs.ovh/2026/03/07/OjjIEC.png",
+"https://i.imgs.ovh/2026/03/07/Ojjhi4.png",
+"https://i.imgs.ovh/2026/03/07/OjjmbA.png",
+"https://i.imgs.ovh/2026/03/07/OjjunN.png",
+"https://i.imgs.ovh/2026/03/07/OjjxBH.png",
+"https://i.imgs.ovh/2026/03/07/OjjXFU.png",
+"https://i.imgs.ovh/2026/03/07/Ojjw9X.png",
+"https://i.imgs.ovh/2026/03/07/Ojj1IQ.png",
+"https://i.imgs.ovh/2026/03/07/OjjNaF.png",
+"https://i.imgs.ovh/2026/03/07/Ojjiqm.png",
+"https://i.imgs.ovh/2026/03/07/Ojc0E9.png",
+"https://i.imgs.ovh/2026/03/07/Ojcybp.png",
+"https://i.imgs.ovh/2026/03/07/OjcO26.png",
+"https://i.imgs.ovh/2026/03/07/OjcZXO.png",
+"https://i.imgs.ovh/2026/03/07/OjcjFd.png",
+"https://i.imgs.ovh/2026/03/07/OjccDg.png",
+"https://i.imgs.ovh/2026/03/07/Ojcfh0.png",
+"https://i.imgs.ovh/2026/03/07/OjcvaY.png",
+"https://i.imgs.ovh/2026/03/07/OjcF5b.png",
+"https://i.imgs.ovh/2026/03/07/OjcSE1.png",
+"https://i.imgs.ovh/2026/03/07/OjcT0n.png",
+"https://i.imgs.ovh/2026/03/07/OjcUzL.png",
+"https://i.imgs.ovh/2026/03/07/OjcV2x.png",
+"https://i.imgs.ovh/2026/03/07/OjcbXM.png",
+        // ... 
+    ],
+    3: [ // 小生意
+"https://i.imgs.ovh/2026/03/07/OjQwPL.png",
+"https://i.imgs.ovh/2026/03/07/OjQ1Gx.png",
+"https://i.imgs.ovh/2026/03/07/OjQNcM.png",
+"https://i.imgs.ovh/2026/03/07/OjQi8r.png",
+"https://i.imgs.ovh/2026/03/07/OjW0lh.png",
+"https://i.imgs.ovh/2026/03/07/OjWCCe.png",
+"https://i.imgs.ovh/2026/03/07/OjWyRa.png",
+"https://i.imgs.ovh/2026/03/07/OjWOJt.png",
+"https://i.imgs.ovh/2026/03/07/OjWZ1q.png",
+"https://i.imgs.ovh/2026/03/07/OjWjTC.png",
+"https://i.imgs.ovh/2026/03/07/OjWcP4.png",
+"https://i.imgs.ovh/2026/03/07/OjWfmA.png",
+"https://i.imgs.ovh/2026/03/07/OjWvcN.png",
+"https://i.imgs.ovh/2026/03/07/OjWF8H.png",
+"https://i.imgs.ovh/2026/03/07/OjWStU.png",
+"https://i.imgs.ovh/2026/03/07/OjWTCX.png",
+"https://i.imgs.ovh/2026/03/07/OjWURQ.png",
+"https://i.imgs.ovh/2026/03/07/OjWVYF.png",
+"https://i.imgs.ovh/2026/03/07/OjWb1m.png",
+"https://i.imgs.ovh/2026/03/07/OjWAT9.png",
+"https://i.imgs.ovh/2026/03/07/OjWRQc.png",
+"https://i.imgs.ovh/2026/03/07/OjWgmp.png",
+"https://i.imgs.ovh/2026/03/07/OjWqf6.png",
+"https://i.imgs.ovh/2026/03/07/OjW5eO.png",
+"https://i.imgs.ovh/2026/03/07/OjW6td.png",
+"https://i.imgs.ovh/2026/03/07/OjWeyg.png",
+"https://i.imgs.ovh/2026/03/07/OjWsg0.png",
+"https://i.imgs.ovh/2026/03/07/OjW9YY.png",
+"https://i.imgs.ovh/2026/03/07/OjWD3b.png",
+"https://i.imgs.ovh/2026/03/07/OjWPT1.png",
+"https://i.imgs.ovh/2026/03/07/OjWQQn.png",
+"https://i.imgs.ovh/2026/03/07/OjWWuL.png",
+"https://i.imgs.ovh/2026/03/07/OjW2fx.png",
+"https://i.imgs.ovh/2026/03/07/OjWHeM.png",
+"https://i.imgs.ovh/2026/03/07/OjWJKr.png",
+"https://i.imgs.ovh/2026/03/07/OjWoyh.png",
+"https://i.imgs.ovh/2026/03/07/OjW4ge.png",
+"https://i.imgs.ovh/2026/03/07/OjWEoa.png",
+"https://i.imgs.ovh/2026/03/07/OjWd3t.png",
+"https://i.imgs.ovh/2026/03/07/OjWtUq.png",
+"https://i.imgs.ovh/2026/03/07/OjWKWC.png",
+"https://i.imgs.ovh/2026/03/07/OjWpu4.png",
+"https://i.imgs.ovh/2026/03/07/OjWhrA.png",
+"https://i.imgs.ovh/2026/03/07/OjWGeN.png",
+"https://i.imgs.ovh/2026/03/07/OjWmKH.png",
+"https://i.imgs.ovh/2026/03/07/OjWxOU.png",
+"https://i.imgs.ovh/2026/03/07/OjWBgX.png",
+"https://i.imgs.ovh/2026/03/07/OjWXoQ.png",
+"https://i.imgs.ovh/2026/03/07/OjW3Um.png",
+"https://i.imgs.ovh/2026/03/07/OjWNW9.png",
+"https://i.imgs.ovh/2026/03/07/OjWixc.png",
+"https://i.imgs.ovh/2026/03/07/Ojn7rp.png",
+"https://i.imgs.ovh/2026/03/07/OjnCs6.png",
+"https://i.imgs.ovh/2026/03/07/OjnypO.png",
+        // ... 
+    ]
+};
+
+const categoryNames = ["市场风云", "意外开支", "大买卖", "小生意"];
+
+// ================= 以下为逻辑代码，无需修改 =================
+let selectedCategoryIndex = -1;
+const boxes = document.querySelectorAll('.box');
+const drawBtn = document.getElementById('drawBtn');
+const diceBtn = document.getElementById('diceBtn');
+const cube = document.getElementById('cube');
+const modalOverlay = document.getElementById('modalOverlay');
+const resultImage = document.getElementById('resultImage');
+const modalCategoryTag = document.getElementById('modalCategoryTag');
+const toast = document.getElementById('toast');
+
+let isDrawing = false;
+let isRolling = false;
+
+// 初始化界面：隐藏上传按钮，显示已加载数量
+function init() {
+    // 隐藏所有上传按钮和输入框
+    document.querySelectorAll('.btn-upload, input[type="file"]').forEach(el => el.style.display = 'none');
+    
+    // 更新每个类别的状态显示
+    for (let i = 0; i < 4; i++) {
+        const count = categoryImages[i].length;
+        const statusEl = document.getElementById(`status${i}`);
+        if (count > 0) {
+            statusEl.innerText = `✅ 云端已预置 ${count} 张`;
+            statusEl.className = 'status-text status-loaded';
+        } else {
+            statusEl.innerText = '⚠️ 暂无图片';
+            statusEl.className = 'status-text status-empty';
+        }
+    }
+}
+
+// 类别选择
+function selectCategory(index) {
+    if (isDrawing || isRolling) return;
+    selectedCategoryIndex = index;
+    boxes.forEach(box => box.classList.remove('selected'));
+    boxes[index].classList.add('selected');
+
+    const count = categoryImages[index].length;
+    if (count === 0) {
+        showToast("⚠️ 该类别暂无图片", "error");
+        drawBtn.disabled = true;
+        drawBtn.innerHTML = "<span>⚠️</span> 暂无图片";
+        drawBtn.style.backgroundColor = "#ccc";
+    } else {
+        enableDrawButton(count);
+    }
+}
+
+function enableDrawButton(count) {
+    drawBtn.disabled = false;
+    drawBtn.innerHTML = `<span>🎲</span> 开始抽签`;
+    drawBtn.style.backgroundColor = "var(--success-color)";
+}
+
+// 抽签逻辑
+function startDraw() {
+    if (isDrawing || isRolling) return;
+    if (selectedCategoryIndex === -1 || categoryImages[selectedCategoryIndex].length === 0) return;
+
+    isDrawing = true;
+    drawBtn.disabled = true;
+    diceBtn.disabled = true;
+    drawBtn.innerHTML = "<span>⏳</span> 抽取中...";
+
+    setTimeout(() => {
+        const currentImageList = categoryImages[selectedCategoryIndex];
+        const randomIndex = Math.floor(Math.random() * currentImageList.length);
+        const imageUrl = currentImageList[randomIndex];
+        
+        showImageResult(imageUrl, categoryNames[selectedCategoryIndex], currentImageList.length, randomIndex + 1);
+        
+        isDrawing = false;
+        drawBtn.disabled = false;
+        diceBtn.disabled = false;
+        drawBtn.innerHTML = `<span>🎲</span> 再次抽签`;
+        drawBtn.style.backgroundColor = "var(--primary-color)";
+    }, 800);
+}
+
+// 3D 骰子逻辑 (保持不变)
+function rollDice() {
+    if (isDrawing || isRolling) return;
+    isRolling = true;
+    diceBtn.disabled = true;
+    drawBtn.disabled = true;
+    cube.classList.add('rolling');
+    setTimeout(() => {
+        cube.classList.remove('rolling');
+        finalizeDice();
+    }, 1000);
+}
+
+function finalizeDice() {
+    const finalNum = Math.floor(Math.random() * 6) + 1;
+    let xRot = 0, yRot = 0;
+    switch(finalNum) {
+        case 1: xRot = 0; yRot = 0; break;
+        case 2: xRot = 0; yRot = -90; break;
+        case 3: xRot = 0; yRot = -180; break;
+        case 4: xRot = 0; yRot = 90; break;
+        case 5: xRot = -90; yRot = 0; break;
+        case 6: xRot = 90; yRot = 0; break;
+    }
+    const extraRot = 360 * 2; 
+    cube.style.transform = `translateZ(-50px) rotateX(${xRot + extraRot}deg) rotateY(${yRot + extraRot}deg)`;
+    isRolling = false;
+    diceBtn.disabled = false;
+    drawBtn.disabled = false;
+}
+
+function showImageResult(url, categoryName, total, selectedIndex) {
+    resultImage.src = url;
+    modalCategoryTag.innerText = "📂 " + categoryName;
+    modalCountInfo = document.getElementById('modalCountInfo');
+    if(modalCountInfo) modalCountInfo.innerText = ``;
+    
+    modalOverlay.style.display = 'flex';
+    requestAnimationFrame(() => modalOverlay.classList.add('show'));
+}
+
+function closeModal() {
+    modalOverlay.classList.remove('show');
+    setTimeout(() => {
+        modalOverlay.style.display = 'none';
+        resultImage.src = ""; 
+    }, 300);
+}
+
+function showToast(msg, type = "normal") {
+    toast.innerText = msg;
+    toast.className = 'toast show';
+    if (type === 'error') toast.classList.add('error');
+    if (type === 'success') toast.classList.add('success');
+    setTimeout(() => toast.classList.remove('show'), 3000);
+}
+
+// 页面加载时初始化
+window.onload = init;
+    </script>
+</body>
+</html>
